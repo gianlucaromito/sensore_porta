@@ -1,0 +1,10 @@
+[Unit]
+Description=Sensore aperttura porta
+After=multi-user.target
+
+[Service]
+Type=idle
+
+ExecStart=/usr/bin/python /home/pi/python/sensore_porta/sensore_porta.py
+[Install]
+WantedBy=multi-user.target

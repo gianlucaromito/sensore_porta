@@ -10,6 +10,8 @@ import subprocess
 import urllib2
 import json
 import base64
+import ssl
+
 
 #logging, max 2M a file e ne tengo solo 5
 LOG_FILENAME = '/home/pi/python/sensore_porta/sensore_porta.log'
@@ -26,11 +28,11 @@ logger.addHandler(consoleHandler)
 
 
 # Settings for the domoticz server
-domoticzserver=""
-domoticzusername = ""
-domoticzpassword = ""
-domoticzpasscode = ""
-
+domoticzserver="server:porta"
+domoticzusername = "nome"
+domoticzpassword = "pass"
+domoticzpasscode = "pass"
+base64string = base64.encodestring('%s:%s' % (domoticzusername, domoticzpassword)).replace('\n', '')
 
 def mail(sub):
 	import smtplib
@@ -38,8 +40,8 @@ def mail(sub):
 	from email.MIMEText import MIMEText
  
  
-	fromaddr = ""
-	toaddr =""
+	fromaddr = "gianluca.romito@gmail.com"
+	toaddr ="gianluca.romito@gmail.com"
 	msg = MIMEMultipart()
 	msg['From'] = fromaddr
 	msg['To'] = toaddr
@@ -50,15 +52,18 @@ def mail(sub):
  
 	server = smtplib.SMTP('smtp.gmail.com', 587)
 	server.starttls()
-	server.login(fromaddr, "")
+	server.login(fromaddr, "pass")
 	text = msg.as_string()
 	server.sendmail(fromaddr, toaddr, text)
 	server.quit()
 
 def domoticzrequest (url):
+	ctx = ssl.create_default_context()
+	ctx.check_hostname = False
+	ctx.verify_mode = ssl.CERT_NONE
 	request = urllib2.Request(url)
 	request.add_header("Authorization", "Basic %s" % base64string)
-	response = urllib2.urlopen(request)
+	response = urllib2.urlopen(request, context=ctx)
 	return response.read()
 
 
@@ -79,7 +84,7 @@ while True:
 	elif input_state == False and stato_prec == True:
 		mail('Porta via Sacchi chiusa')
 		try:
-			domoticzrequest("http://" + domoticzserver + "/json.htm?type=command&param=switchlight&idx=12&switchcmd=Off&level=0" + "&passcode=" + domoticzpasscode)
+			domoticzrequest("https://" + domoticzserver + "/json.htm?type=command&param=switchlight&idx=12&switchcmd=Off&level=0" + "&passcode=" + domoticzpasscode)
 		except:
 			logger.error('Non sono riuscito ad inserire il dato di porta Chiusa in domoticz')
 		logger.info('Porta Via Sacchi chiusa')

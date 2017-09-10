@@ -1,8 +1,15 @@
-
+# aggiunto supporto domoticz
 import RPi.GPIO as GPIO
 import time
 import logging
 import logging.handlers
+import sys
+import datetime
+import os
+import subprocess
+import urllib2
+import json
+import base64
 
 #logging, max 2M a file e ne tengo solo 5
 LOG_FILENAME = '/home/pi/python/sensore_porta/sensore_porta.log'
@@ -17,14 +24,22 @@ consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(formatter)
 logger.addHandler(consoleHandler)
 
+
+# Settings for the domoticz server
+domoticzserver=""
+domoticzusername = ""
+domoticzpassword = ""
+domoticzpasscode = ""
+
+
 def mail(sub):
 	import smtplib
 	from email.MIMEMultipart import MIMEMultipart
 	from email.MIMEText import MIMEText
  
  
-	fromaddr = "gianluca.romito@gmail.com"
-	toaddr ="gianluca.romito@gmail.com"
+	fromaddr = ""
+	toaddr =""
 	msg = MIMEMultipart()
 	msg['From'] = fromaddr
 	msg['To'] = toaddr
@@ -35,10 +50,16 @@ def mail(sub):
  
 	server = smtplib.SMTP('smtp.gmail.com', 587)
 	server.starttls()
-	server.login(fromaddr, "ghcgnwkqmgpfageb")
+	server.login(fromaddr, "")
 	text = msg.as_string()
 	server.sendmail(fromaddr, toaddr, text)
 	server.quit()
+
+def domoticzrequest (url):
+	request = urllib2.Request(url)
+	request.add_header("Authorization", "Basic %s" % base64string)
+	response = urllib2.urlopen(request)
+	return response.read()
 
 
 GPIO.setmode(GPIO.BCM)
@@ -49,10 +70,18 @@ while True:
 	input_state = GPIO.input(18)
 	if input_state == True and stato_prec == False :
 		mail('Porta via Sacchi aperta')
+		try:
+			domoticzrequest("https://" + domoticzserver + "/json.htm?type=command&param=switchlight&idx=12&switchcmd=On&level=0" + "&passcode=" + domoticzpasscode)
+		except:
+			logger.error('Non sono riuscito ad inserire il dato di porta Aperta in domoticz')
 		logger.info('Porta via Sacchi aperta')
 		stato_prec = True
 	elif input_state == False and stato_prec == True:
 		mail('Porta via Sacchi chiusa')
+		try:
+			domoticzrequest("http://" + domoticzserver + "/json.htm?type=command&param=switchlight&idx=12&switchcmd=Off&level=0" + "&passcode=" + domoticzpasscode)
+		except:
+			logger.error('Non sono riuscito ad inserire il dato di porta Chiusa in domoticz')
 		logger.info('Porta Via Sacchi chiusa')
 		stato_prec = False
 	
